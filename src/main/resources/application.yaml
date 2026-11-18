@@ -2,12 +2,8 @@ spring:
   application:
     name: autentificador
 
-  # Mesmo Oracle/schema da API de funções (compose.yaml do API-Funcoes).
-  # Fora do ambiente local, sobrescreva com SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD.
-  datasource:
-    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
-    username: ajudante
-    password: secret
+  # Banco e RabbitMQ vêm do compose.yaml (spring-boot-docker-compose), igual à API de funções.
+  # Fora do Docker Compose, use as variáveis SPRING_DATASOURCE_* e SPRING_RABBITMQ_* (ver CLAUDE.md).
 
   # Flyway: migrations com o padrão M_AUT_VXX__descricao.sql
   # Histórico próprio para não misturar com o flyway_schema_history da API de funções.
@@ -25,16 +21,11 @@ spring:
       ddl-auto: none
     open-in-view: false
 
-  rabbitmq:
-    host: localhost
-    port: 5672
-    username: myuser
-    password: secret
-
+# Porta fixa da API de autenticação (padrão de portas no CLAUDE.md)
 server:
   port: 8081
 
-# JWT: mesmo segredo da API de funções (HS256, mínimo 32 caracteres).
+# JWT: mesmo segredo da API de funções para assinar os tokens (HS256, mínimo 32 caracteres).
 # Em produção, defina a variável de ambiente JWT_SEGREDO.
 jwt:
   segredo: "${JWT_SEGREDO:ajudante-familiar-segredo-dev-troque-em-producao}"
