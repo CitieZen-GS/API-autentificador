@@ -29,3 +29,13 @@ server:
 # Em produção, defina a variável de ambiente JWT_SEGREDO.
 jwt:
   segredo: "${JWT_SEGREDO:ajudante-familiar-segredo-dev-troque-em-producao}"
+  # Validade do token de acesso (JWT) e do token de atualização
+  expiracao-acesso-minutos: ${JWT_EXPIRACAO_ACESSO_MINUTOS:60}
+  expiracao-atualizacao-dias: ${JWT_EXPIRACAO_ATUALIZACAO_DIAS:7}
+
+# Swagger / OpenAPI (springdoc): http://localhost:8081/swagger-ui.html
+springdoc:
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method

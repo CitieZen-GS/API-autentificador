@@ -91,6 +91,8 @@ Em desenvolvimento nenhuma é obrigatória. Fora do Docker Compose (servidor, `j
 | `SPRING_RABBITMQ_HOST` / `SPRING_RABBITMQ_PORT` | Endereço e porta do RabbitMQ |
 | `SPRING_RABBITMQ_USERNAME` / `SPRING_RABBITMQ_PASSWORD` | Usuário e senha do RabbitMQ |
 | `SERVER_PORT` | Opcional: troca a porta da API |
+| `JWT_EXPIRACAO_ACESSO_MINUTOS` | Só na autenticação: validade do token de acesso (padrão 60) |
+| `JWT_EXPIRACAO_ATUALIZACAO_DIAS` | Só na autenticação: validade do token de atualização (padrão 7) |
 
 Regras para novas variáveis:
 
@@ -109,3 +111,30 @@ Todas as APIs usam o mesmo schema `AJUDANTE`. Cada uma tem prefixo e tabela de h
 | RAG | `M_RAG_V` | `flyway_historico_rag` |
 
 APIs que não são a de funções usam `baseline-on-migrate: true` e `baseline-version: 0`, porque o schema já existe quando elas sobem.
+
+## Contrato do JWT (autenticação → outras APIs)
+
+A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt.segredo` (`JWT_SEGREDO`), igual em todas.
+
+| Claim | Cuidador | Parente |
+|---|---|---|
+| `sub` | `id_cuidador` | `id_parente` |
+| `roles` | `["CUIDADOR"]` | `["FAMILIAR"]` |
+| `permissoes` | `["LEITURA", "ESCRITA"]` | `["LEITURA"]` |
+| `id_idoso` | não existe | id do idoso vinculado ao parente |
+| `nome`, `email` | dados do cuidador | dados do parente |
+| `iss`, `iat`, `exp` | `ajudante-familiar-autenticacao`, emissão, expiração | idem |
+
+- O tipo vem da tabela onde o e-mail foi encontrado: `T_Ajudante_familiar_Cuidador` dá CUIDADOR, `T_Ajudante_familiar_Parente` dá FAMILIAR.
+- A autorização nas outras APIs usa `roles`: CUIDADOR lê e escreve, FAMILIAR só faz GET.
+- `sub` só é único junto com `roles`: um cuidador e um parente podem ter o mesmo id.
+- Senhas ficam em `ds_senha` como hash BCrypt. Tokens de atualização ficam só como hash SHA-256.
+- Mudou alguma claim? Atualize esta tabela e a `ConfiguracaoSeguranca` das APIs que validam o token.
+
+### Rotas da API de autenticação (porta 8081)
+
+| Método | Rota | Corpo | Resposta |
+|---|---|---|---|
+| POST | `/autenticacao/login` | `{"email", "senha"}` | `tokenAcesso`, `tokenAtualizacao`, `expiraEm`, `usuario` |
+| POST | `/autenticacao/atualizar` | `{"tokenAtualizacao"}` | novo par de tokens; o antigo é revogado |
+| POST | `/autenticacao/sair` | `{"tokenAtualizacao"}` | 204, revoga o token de atualização |
