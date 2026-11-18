@@ -138,3 +138,6 @@ A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt
 | POST | `/autenticacao/login` | `{"email", "senha"}` | `tokenAcesso`, `tokenAtualizacao`, `expiraEm`, `usuario` |
 | POST | `/autenticacao/atualizar` | `{"tokenAtualizacao"}` | novo par de tokens; o antigo é revogado |
 | POST | `/autenticacao/sair` | `{"tokenAtualizacao"}` | 204, revoga o token de atualização |
+| GET | `/autenticacao/eu` | header `Authorization: Bearer` | usuário do token (o app usa ao reabrir) |
+
+Swagger: http://localhost:8081/swagger-ui.html. Toda rota nova precisa de `@Operation`, `@ApiResponses` com os códigos de erro e `@Schema` com exemplo nos DTOs.

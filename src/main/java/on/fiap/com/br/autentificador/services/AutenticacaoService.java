@@ -13,6 +13,7 @@ import on.fiap.com.br.autentificador.repositories.TokenAtualizacaoRepository;
 import on.fiap.com.br.autentificador.services.excecoes.AutenticacaoException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -92,6 +93,11 @@ public class AutenticacaoService {
         tokenAtualizacaoRepository.findByTokenHash(gerarHash(tokenAtualizacao))
                 .filter(token -> token.getDataRevogacao() == null)
                 .ifPresent(token -> token.setDataRevogacao(LocalDateTime.now()));
+    }
+
+    /** Usuário do token já validado pelo Spring Security (rota GET /autenticacao/eu). */
+    public UsuarioResposta usuarioDoToken(Jwt jwt) {
+        return UsuarioResposta.de(UsuarioAutenticado.doToken(jwt));
     }
 
     private TokenResposta emitirTokens(UsuarioAutenticado usuario, Cuidador cuidador, Parente parente) {

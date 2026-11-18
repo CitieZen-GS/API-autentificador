@@ -54,10 +54,10 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-webmvc</artifactId>
 		</dependency>
-		<!-- Geração (assinatura) do JWT com Nimbus: JwtEncoder do Spring Security -->
+		<!-- Gera o JWT (JwtEncoder) e valida o token na rota /autenticacao/eu (mesmo starter da API de funções) -->
 		<dependency>
-			<groupId>org.springframework.security</groupId>
-			<artifactId>spring-security-oauth2-jose</artifactId>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-security-oauth2-resource-server</artifactId>
 		</dependency>
 		<dependency>
 			<groupId>org.flywaydb</groupId>

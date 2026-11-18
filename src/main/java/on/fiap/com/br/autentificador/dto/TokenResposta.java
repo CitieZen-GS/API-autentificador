@@ -1,10 +1,21 @@
 package on.fiap.com.br.autentificador.dto;
 
-/**
- * @param tokenAcesso      JWT enviado no header Authorization: Bearer
- * @param expiraEm         validade do token de acesso, em segundos
- * @param tokenAtualizacao usado em /autenticacao/atualizar para pegar um novo token de acesso
- */
-public record TokenResposta(String tokenAcesso, String tipoToken, long expiraEm, String tokenAtualizacao,
-                            UsuarioResposta usuario) {
+import io.swagger.v3.oas.annotations.media.Schema;
+
+public record TokenResposta(
+
+        @Schema(description = "JWT para o header Authorization: Bearer nas outras APIs")
+        String tokenAcesso,
+
+        @Schema(example = "Bearer")
+        String tipoToken,
+
+        @Schema(description = "Validade do tokenAcesso, em segundos", example = "3600")
+        long expiraEm,
+
+        @Schema(description = "Usado em /autenticacao/atualizar quando o tokenAcesso expirar")
+        String tokenAtualizacao,
+
+        UsuarioResposta usuario
+) {
 }
