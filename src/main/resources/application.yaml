@@ -1,3 +1,40 @@
 spring:
   application:
     name: autentificador
+
+  # Mesmo Oracle/schema da API de funções (compose.yaml do API-Funcoes).
+  # Fora do ambiente local, sobrescreva com SPRING_DATASOURCE_URL / _USERNAME / _PASSWORD.
+  datasource:
+    url: jdbc:oracle:thin:@//localhost:1521/FREEPDB1
+    username: ajudante
+    password: secret
+
+  # Flyway: migrations com o padrão M_AUT_VXX__descricao.sql
+  # Histórico próprio para não misturar com o flyway_schema_history da API de funções.
+  # baseline-version 0: no schema já existente, aplica a partir da M_AUT_V01.
+  flyway:
+    locations: classpath:db/migration
+    sql-migration-prefix: M_AUT_V
+    table: flyway_historico_autenticacao
+    baseline-on-migrate: true
+    baseline-version: 0
+
+  # O schema é gerenciado só pelo Flyway: o Hibernate não cria nem altera tabelas
+  jpa:
+    hibernate:
+      ddl-auto: none
+    open-in-view: false
+
+  rabbitmq:
+    host: localhost
+    port: 5672
+    username: myuser
+    password: secret
+
+server:
+  port: 8081
+
+# JWT: mesmo segredo da API de funções (HS256, mínimo 32 caracteres).
+# Em produção, defina a variável de ambiente JWT_SEGREDO.
+jwt:
+  segredo: "${JWT_SEGREDO:ajudante-familiar-segredo-dev-troque-em-producao}"
