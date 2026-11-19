@@ -112,6 +112,15 @@ Todas as APIs usam o mesmo schema `AJUDANTE`. Cada uma tem prefixo e tabela de h
 
 APIs que não são a de funções usam `baseline-on-migrate: true` e `baseline-version: 0`, porque o schema já existe quando elas sobem.
 
+Testes (Testcontainers) começam com o Oracle vazio. Por isso as APIs que dependem das tabelas da API de funções têm cópias **só de teste** das migrations dela, em `src/test/resources/db/migration-teste`, com versões abaixo de 1 (ex.: `M_AUT_V0.1__...`). Elas são ativadas por `src/test/resources/config/application.yaml`. Quando a API de funções criar uma nova migration que mude essas tabelas, atualize as cópias.
+
+## Deploy (Azure)
+
+- Cada API tem `azure-pipeline.yaml` na raiz e `scripts/azure-infra.sh`.
+- `API-Funcoes/scripts/azure-infra.sh` cria o grupo `gs-ajudantefamiliar`, o plano B1 `ajudante-familiar-SP`, o Application Insights `ai-ajudante-familiar` e o Web App da API de funções. Rode primeiro.
+- O script das outras APIs só cria o Web App `ajudante-familiar-<api>` nesse plano e o liga ao Application Insights.
+- Credenciais (banco, RabbitMQ, `JWT_SEGREDO`) nunca vão nos scripts: a pipeline grava no Web App a cada deploy.
+
 ## Contrato do JWT (autenticação → outras APIs)
 
 A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt.segredo` (`JWT_SEGREDO`), igual em todas.
