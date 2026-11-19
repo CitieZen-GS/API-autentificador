@@ -117,7 +117,7 @@ Testes (Testcontainers) começam com o Oracle vazio. Por isso as APIs que depend
 ## Deploy (Azure)
 
 - Cada API tem `azure-pipeline.yaml` na raiz e `scripts/azure-infra.sh`.
-- `API-Funcoes/scripts/azure-infra.sh` cria o grupo `gs-ajudantefamiliar`, o plano B1 `ajudante-familiar-SP`, o Application Insights `ai-ajudante-familiar` e o Web App da API de funções. Rode primeiro.
+- `API-Funcoes/scripts/azure-infra.sh` cria o grupo `gs-ajudantefamiliar`, o plano B1 `ajudante-familiar-SP`, o Application Insights `ai-ajudante-familiar`, o RabbitMQ no Azure Container Instance (`rabbitmq-ajudante-familiar.brazilsouth.azurecontainer.io`, usuário `ajudante`, senha digitada ao rodar) e o Web App da API de funções. Rode primeiro.
 - O script das outras APIs só cria o Web App `ajudante-familiar-<api>` nesse plano e o liga ao Application Insights.
 - Credenciais (banco, RabbitMQ, `JWT_SEGREDO`) nunca vão nos scripts: a pipeline grava no Web App a cada deploy.
 
