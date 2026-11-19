@@ -2,7 +2,13 @@ spring:
   application:
     name: autentificador
 
-  # Banco e RabbitMQ vêm do compose.yaml (spring-boot-docker-compose), igual à API de funções.
+  # Docker Compose de desenvolvimento (Oracle e RabbitMQ), guardado na pasta dockerfiles/.
+  # Caminho relativo à pasta onde a aplicação é iniciada (a raiz do projeto).
+  docker:
+    compose:
+      file: dockerfiles/compose.yaml
+
+  # Banco e RabbitMQ vêm do dockerfiles/compose.yaml (spring-boot-docker-compose), igual à API de funções.
   # Fora do Docker Compose, use as variáveis SPRING_DATASOURCE_* e SPRING_RABBITMQ_* (ver CLAUDE.md).
 
   # Flyway: migrations com o padrão M_AUT_VXX__descricao.sql
@@ -15,7 +21,7 @@ spring:
     baseline-on-migrate: true
     baseline-version: 0
 
-  # RabbitMQ: endereço vem do compose.yaml (local) ou de SPRING_RABBITMQ_* (nuvem).
+  # RabbitMQ: endereço vem do dockerfiles/compose.yaml (local) ou de SPRING_RABBITMQ_* (nuvem).
   # Timeout curto: se o RabbitMQ cair, o logout não fica travado esperando a conexão.
   rabbitmq:
     connection-timeout: 5s
