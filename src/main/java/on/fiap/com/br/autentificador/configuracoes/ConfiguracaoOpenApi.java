@@ -13,7 +13,7 @@ import org.springframework.context.annotation.Configuration;
  *   <li>Swagger UI: /swagger-ui.html</li>
  *   <li>JSON OpenAPI: /v3/api-docs</li>
  * </ul>
- * Só a rota GET /autenticacao/eu pede o JWT no botão "Authorize" (sem o prefixo "Bearer").
+ * As rotas GET /autenticacao/eu e POST /autenticacao/cadastro/parente pedem o JWT no botão "Authorize".
  */
 @Configuration
 public class ConfiguracaoOpenApi {
@@ -35,6 +35,11 @@ public class ConfiguracaoOpenApi {
                                 |---|---|---|---|
                                 | Cuidador | `CUIDADOR` | `LEITURA`, `ESCRITA` | telas de cadastro e edição |
                                 | Parente | `FAMILIAR` | `LEITURA` | só telas de visualização do idoso `idIdoso` |
+
+                                **Criação de contas**
+                                - Cuidador: `POST /autenticacao/cadastro/cuidador` (público). Já devolve os tokens.
+                                - Familiar: `POST /autenticacao/cadastro/parente`, feito pelo cuidador logado,
+                                  para um idoso dele. Depois o familiar entra com o próprio e-mail e senha.
 
                                 **Fluxo no app**
                                 1. `POST /autenticacao/login` com e-mail e senha.

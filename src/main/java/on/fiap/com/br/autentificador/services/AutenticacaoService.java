@@ -56,7 +56,7 @@ public class AutenticacaoService {
 
     @Transactional
     public TokenResposta login(LoginRequisicao requisicao) {
-        String email = requisicao.email().trim();
+        String email = CadastroService.normalizarEmail(requisicao.email());
         String senha = requisicao.senha();
 
         Optional<Cuidador> cuidador = cuidadorRepository.findByEmail(email);
@@ -98,6 +98,12 @@ public class AutenticacaoService {
     /** Usuário do token já validado pelo Spring Security (rota GET /autenticacao/eu). */
     public UsuarioResposta usuarioDoToken(Jwt jwt) {
         return UsuarioResposta.de(UsuarioAutenticado.doToken(jwt));
+    }
+
+    /** Login automático logo após o cadastro do cuidador. Roda na transação de quem chamou. */
+    @Transactional
+    public TokenResposta emitirTokens(Cuidador cuidador) {
+        return emitirTokens(UsuarioAutenticado.de(cuidador), cuidador, null);
     }
 
     private TokenResposta emitirTokens(UsuarioAutenticado usuario, Cuidador cuidador, Parente parente) {

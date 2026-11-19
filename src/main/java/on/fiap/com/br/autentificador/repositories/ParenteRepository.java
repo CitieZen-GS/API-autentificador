@@ -8,4 +8,8 @@ import java.util.Optional;
 public interface ParenteRepository extends JpaRepository<Parente, Long> {
 
     Optional<Parente> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+
+    boolean existsByTelefone(String telefone);
 }

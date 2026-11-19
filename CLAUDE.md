@@ -139,5 +139,9 @@ A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt
 | POST | `/autenticacao/atualizar` | `{"tokenAtualizacao"}` | novo par de tokens; o antigo é revogado |
 | POST | `/autenticacao/sair` | `{"tokenAtualizacao"}` | 204, revoga o token de atualização |
 | GET | `/autenticacao/eu` | header `Authorization: Bearer` | usuário do token (o app usa ao reabrir) |
+| POST | `/autenticacao/cadastro/cuidador` | `{"nome", "cpf"?, "email", "senha"}` | 201 + tokens (já sai logado). Público |
+| POST | `/autenticacao/cadastro/parente` | `{"nome", "telefone"?, "email", "senha", "idIdoso"}` | 201 + usuário. Só CUIDADOR, e só para um idoso dele |
+
+Regras do cadastro: e-mail único entre cuidadores **e** parentes, salvo em minúsculas. CPF salvo como `000.000.000-00`. Senha de 6 a 72 caracteres, salva em BCrypt. A autenticação lê `T_Ajudante_familiar_Idoso` só para conferir o dono, e nunca grava nela.
 
 Swagger: http://localhost:8081/swagger-ui.html. Toda rota nova precisa de `@Operation`, `@ApiResponses` com os códigos de erro e `@Schema` com exemplo nos DTOs.

@@ -8,4 +8,8 @@ import java.util.Optional;
 public interface CuidadorRepository extends JpaRepository<Cuidador, Long> {
 
     Optional<Cuidador> findByEmail(String email);
+
+    boolean existsByEmail(String email);
+
+    boolean existsByCpf(String cpf);
 }

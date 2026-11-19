@@ -24,7 +24,8 @@ import javax.crypto.spec.SecretKeySpec;
 import java.nio.charset.StandardCharsets;
 
 /**
- * Login, renovação e saída são públicos. GET /autenticacao/eu exige o JWT (CUIDADOR ou FAMILIAR).
+ * Login, renovação, saída e cadastro de cuidador são públicos. GET /autenticacao/eu exige o JWT
+ * (CUIDADOR ou FAMILIAR) e o cadastro de parente exige o JWT de CUIDADOR.
  * Senhas em BCrypt. O JWT é assinado e validado em HS256 com o mesmo segredo da API de funções.
  */
 @Configuration
@@ -44,6 +45,9 @@ public class ConfiguracaoSeguranca {
                         .requestMatchers(HttpMethod.POST,
                                 "/autenticacao/login", "/autenticacao/atualizar", "/autenticacao/sair").permitAll()
                         .requestMatchers(HttpMethod.GET, "/autenticacao/eu").hasAnyRole("CUIDADOR", "FAMILIAR")
+                        // Conta de cuidador: pública. Conta de familiar: só o cuidador logado cria.
+                        .requestMatchers(HttpMethod.POST, "/autenticacao/cadastro/cuidador").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/autenticacao/cadastro/parente").hasRole("CUIDADOR")
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/swagger-ui.html", "/swagger-ui/**", "/v3/api-docs/**").permitAll()
                         .anyRequest().denyAll())

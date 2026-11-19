@@ -2,7 +2,10 @@ package on.fiap.com.br.autentificador.controller;
 
 import jakarta.servlet.http.HttpServletRequest;
 import on.fiap.com.br.autentificador.dto.ErroResposta;
+import on.fiap.com.br.autentificador.services.excecoes.AcessoNegadoException;
 import on.fiap.com.br.autentificador.services.excecoes.AutenticacaoException;
+import on.fiap.com.br.autentificador.services.excecoes.ConflitoException;
+import on.fiap.com.br.autentificador.services.excecoes.RecursoNaoEncontradoException;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -23,6 +26,21 @@ public class TratadorDeErros {
     @ExceptionHandler(AutenticacaoException.class)
     public ResponseEntity<ErroResposta> naoAutorizado(AutenticacaoException e, HttpServletRequest req) {
         return resposta(HttpStatus.UNAUTHORIZED, e.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(AcessoNegadoException.class)
+    public ResponseEntity<ErroResposta> acessoNegado(AcessoNegadoException e, HttpServletRequest req) {
+        return resposta(HttpStatus.FORBIDDEN, e.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(RecursoNaoEncontradoException.class)
+    public ResponseEntity<ErroResposta> naoEncontrado(RecursoNaoEncontradoException e, HttpServletRequest req) {
+        return resposta(HttpStatus.NOT_FOUND, e.getMessage(), req, List.of());
+    }
+
+    @ExceptionHandler(ConflitoException.class)
+    public ResponseEntity<ErroResposta> conflito(ConflitoException e, HttpServletRequest req) {
+        return resposta(HttpStatus.CONFLICT, e.getMessage(), req, List.of());
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
