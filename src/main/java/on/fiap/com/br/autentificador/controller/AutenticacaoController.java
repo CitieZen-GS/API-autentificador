@@ -12,6 +12,7 @@ import lombok.RequiredArgsConstructor;
 import on.fiap.com.br.autentificador.configuracoes.ConfiguracaoOpenApi;
 import on.fiap.com.br.autentificador.dto.ErroResposta;
 import on.fiap.com.br.autentificador.dto.LoginRequisicao;
+import on.fiap.com.br.autentificador.dto.SairRequisicao;
 import on.fiap.com.br.autentificador.dto.TokenAtualizacaoRequisicao;
 import on.fiap.com.br.autentificador.dto.TokenResposta;
 import on.fiap.com.br.autentificador.dto.UsuarioResposta;
@@ -64,16 +65,17 @@ public class AutenticacaoController {
         return autenticacaoService.atualizar(requisicao.tokenAtualizacao());
     }
 
-    @Operation(summary = "Sai do app: revoga o token de atualização",
-            description = "O token de acesso continua válido até expirar; o app deve apagá-lo do aparelho.")
+    @Operation(summary = "Sai do app: revoga os tokens",
+            description = "Revoga o tokenAtualizacao. Se o tokenAcesso vier junto, as outras APIs passam a "
+                    + "recusá-lo na hora (aviso via RabbitMQ). O app deve apagar os dois do aparelho.")
     @ApiResponses({
             @ApiResponse(responseCode = "204", description = "Saída registrada"),
             @ApiResponse(responseCode = "400", description = "tokenAtualizacao não informado",
                     content = @Content(schema = @Schema(implementation = ErroResposta.class)))
     })
     @PostMapping("/sair")
-    public ResponseEntity<Void> sair(@RequestBody @Valid TokenAtualizacaoRequisicao requisicao) {
-        autenticacaoService.sair(requisicao.tokenAtualizacao());
+    public ResponseEntity<Void> sair(@RequestBody @Valid SairRequisicao requisicao) {
+        autenticacaoService.sair(requisicao);
         return ResponseEntity.noContent().build();
     }
 

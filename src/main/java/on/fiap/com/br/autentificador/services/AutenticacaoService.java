@@ -1,9 +1,12 @@
 package on.fiap.com.br.autentificador.services;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import on.fiap.com.br.autentificador.dto.LoginRequisicao;
+import on.fiap.com.br.autentificador.dto.SairRequisicao;
 import on.fiap.com.br.autentificador.dto.TokenResposta;
 import on.fiap.com.br.autentificador.dto.UsuarioResposta;
+import on.fiap.com.br.autentificador.mensageria.AcessoRevogadoEvento;
 import on.fiap.com.br.autentificador.models.Cuidador;
 import on.fiap.com.br.autentificador.models.Parente;
 import on.fiap.com.br.autentificador.models.TokenAtualizacao;
@@ -12,8 +15,11 @@ import on.fiap.com.br.autentificador.repositories.ParenteRepository;
 import on.fiap.com.br.autentificador.repositories.TokenAtualizacaoRepository;
 import on.fiap.com.br.autentificador.services.excecoes.AutenticacaoException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.oauth2.jwt.Jwt;
+import org.springframework.security.oauth2.jwt.JwtDecoder;
+import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -21,9 +27,11 @@ import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.HexFormat;
+import java.util.List;
 import java.util.Optional;
 
 /**
@@ -34,6 +42,7 @@ import java.util.Optional;
  * </ul>
  * O cuidador é verificado primeiro. Se o mesmo e-mail existir nas duas tabelas, vale a senha que confere.
  */
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class AutenticacaoService {
@@ -46,6 +55,8 @@ public class AutenticacaoService {
     private final TokenAtualizacaoRepository tokenAtualizacaoRepository;
     private final PasswordEncoder passwordEncoder;
     private final TokenJwtService tokenJwtService;
+    private final JwtDecoder jwtDecoder;
+    private final ApplicationEventPublisher publicadorDeEventos;
     private final SecureRandom geradorAleatorio = new SecureRandom();
 
     @Value("${jwt.expiracao-atualizacao-dias}")
@@ -87,12 +98,50 @@ public class AutenticacaoService {
         return emitirTokens(UsuarioAutenticado.de(token.getParente()), null, token.getParente());
     }
 
-    /** Logout: revoga o token de atualização. O token de acesso continua válido até expirar. */
+    /**
+     * Logout: revoga o token de atualização e, se o token de acesso vier junto e for do mesmo usuário,
+     * avisa as outras APIs (RabbitMQ) para recusá-lo na hora, sem esperar ele expirar.
+     */
     @Transactional
-    public void sair(String tokenAtualizacao) {
-        tokenAtualizacaoRepository.findByTokenHash(gerarHash(tokenAtualizacao))
-                .filter(token -> token.getDataRevogacao() == null)
-                .ifPresent(token -> token.setDataRevogacao(LocalDateTime.now()));
+    public void sair(SairRequisicao requisicao) {
+        Optional<TokenAtualizacao> tokenAtualizacao =
+                tokenAtualizacaoRepository.findByTokenHash(gerarHash(requisicao.tokenAtualizacao()));
+        if (tokenAtualizacao.isEmpty()) {
+            return;
+        }
+        TokenAtualizacao token = tokenAtualizacao.get();
+        if (token.getDataRevogacao() == null) {
+            token.setDataRevogacao(LocalDateTime.now());
+        }
+        if (requisicao.tokenAcesso() != null && !requisicao.tokenAcesso().isBlank()) {
+            revogarTokenAcesso(requisicao.tokenAcesso(), token);
+        }
+    }
+
+    /** O evento só sai depois do commit (ver PublicadorEventos). */
+    private void revogarTokenAcesso(String tokenAcesso, TokenAtualizacao dono) {
+        Jwt jwt;
+        try {
+            jwt = jwtDecoder.decode(tokenAcesso);
+        } catch (JwtException e) {
+            // Expirado ou inválido: já é recusado pelas outras APIs, não há o que revogar
+            return;
+        }
+        if (jwt.getId() == null || !pertenceAoMesmoUsuario(jwt, dono)) {
+            log.warn("Logout com token de acesso de outro usuário ou sem jti: ignorado");
+            return;
+        }
+        List<String> roles = jwt.getClaimAsStringList("roles");
+        publicadorDeEventos.publishEvent(new AcessoRevogadoEvento(jwt.getId(), Long.valueOf(jwt.getSubject()),
+                roles.getFirst(), jwt.getExpiresAt(), Instant.now(), "LOGOUT"));
+    }
+
+    private boolean pertenceAoMesmoUsuario(Jwt jwt, TokenAtualizacao dono) {
+        UsuarioAutenticado usuarioDoToken = UsuarioAutenticado.doToken(jwt);
+        UsuarioAutenticado usuarioDoLogout = dono.getCuidador() != null
+                ? UsuarioAutenticado.de(dono.getCuidador())
+                : UsuarioAutenticado.de(dono.getParente());
+        return usuarioDoToken.tipo() == usuarioDoLogout.tipo() && usuarioDoToken.id().equals(usuarioDoLogout.id());
     }
 
     /** Usuário do token já validado pelo Spring Security (rota GET /autenticacao/eu). */

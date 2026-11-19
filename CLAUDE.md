@@ -37,6 +37,7 @@ Migrations de cada API via Flyway.
 | `services` | Regras de negócio |
 | `dto` | Objetos que definem o que entra e o que sai da API |
 | `controller` | Recebe as requisições HTTP |
+| `mensageria` | RabbitMQ: eventos (records), configuração de exchanges/filas, publicadores e consumidores |
 
 ## Regras de camadas
 
@@ -132,6 +133,7 @@ A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt
 | `permissoes` | `["LEITURA", "ESCRITA"]` | `["LEITURA"]` |
 | `id_idoso` | não existe | id do idoso vinculado ao parente |
 | `nome`, `email` | dados do cuidador | dados do parente |
+| `jti` | id único do token (UUID) | idem |
 | `iss`, `iat`, `exp` | `ajudante-familiar-autenticacao`, emissão, expiração | idem |
 
 - O tipo vem da tabela onde o e-mail foi encontrado: `T_Ajudante_familiar_Cuidador` dá CUIDADOR, `T_Ajudante_familiar_Parente` dá FAMILIAR.
@@ -146,7 +148,7 @@ A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt
 |---|---|---|---|
 | POST | `/autenticacao/login` | `{"email", "senha"}` | `tokenAcesso`, `tokenAtualizacao`, `expiraEm`, `usuario` |
 | POST | `/autenticacao/atualizar` | `{"tokenAtualizacao"}` | novo par de tokens; o antigo é revogado |
-| POST | `/autenticacao/sair` | `{"tokenAtualizacao"}` | 204, revoga o token de atualização |
+| POST | `/autenticacao/sair` | `{"tokenAtualizacao", "tokenAcesso"?}` | 204, revoga o token de atualização; com `tokenAcesso`, as outras APIs passam a recusá-lo na hora (RabbitMQ) |
 | GET | `/autenticacao/eu` | header `Authorization: Bearer` | usuário do token (o app usa ao reabrir) |
 | POST | `/autenticacao/cadastro/cuidador` | `{"nome", "cpf"?, "email", "senha"}` | 201 + tokens (já sai logado). Público |
 | POST | `/autenticacao/cadastro/parente` | `{"nome", "telefone"?, "email", "senha", "idIdoso"}` | 201 + usuário. Só CUIDADOR, e só para um idoso dele |
@@ -154,3 +156,19 @@ A API de autenticação emite e as outras só validam. Assinatura HS256 com `jwt
 Regras do cadastro: e-mail único entre cuidadores **e** parentes, salvo em minúsculas. CPF salvo como `000.000.000-00`. Senha de 6 a 72 caracteres, salva em BCrypt. A autenticação lê `T_Ajudante_familiar_Idoso` só para conferir o dono, e nunca grava nela.
 
 Swagger: http://localhost:8081/swagger-ui.html. Toda rota nova precisa de `@Operation`, `@ApiResponses` com os códigos de erro e `@Schema` com exemplo nos DTOs.
+
+## Mensageria (RabbitMQ)
+
+As APIs compartilham o banco, então mensagens **não** servem para copiar dados: servem para uma API avisar a outra que algo aconteceu.
+
+- Exchange único, tipo topic: `ajudante-familiar.eventos`. Falhas vão para `ajudante-familiar.eventos.dlx`.
+- Routing key: `<api que publica>.<o que aconteceu>`, ex.: `autenticacao.acesso-revogado`.
+- Fila: `<api que consome>.<evento>`, ex.: `funcoes.acesso-revogado`, com a fila de falhas `<fila>.dlq`.
+- Mensagens em JSON (`JacksonJsonMessageConverter`). Cada API tem o próprio record do evento, com os mesmos campos: mudou um, mude nos dois lados e nesta tabela.
+- Quem publica declara o exchange. Quem consome declara exchange, fila, DLQ e bindings (`mensageria/ConfiguracaoMensageria`).
+- Publicação sempre **depois do commit**: o service chama `ApplicationEventPublisher.publishEvent(...)` e o `PublicadorEventos` (`@TransactionalEventListener`) envia ao RabbitMQ. Falha no RabbitMQ é só registrada em log e não desfaz a operação.
+- Consumidores: 3 tentativas (1s de intervalo); depois a mensagem vai para a `.dlq`.
+
+| Evento | Routing key | Publica | Consome | Campos | Efeito |
+|---|---|---|---|---|---|
+| `AcessoRevogadoEvento` | `autenticacao.acesso-revogado` | autenticação, no `/sair` com `tokenAcesso` | funções (`funcoes.acesso-revogado`) | `jti`, `idUsuario`, `tipoUsuario`, `expiraEm`, `revogadoEm`, `motivo` | o JWT com esse `jti` é recusado (401) até expirar; lista em memória |

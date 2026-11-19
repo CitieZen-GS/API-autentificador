@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Gera o token de acesso (JWT HS256) no formato que a API de funções valida.
@@ -35,6 +36,8 @@ public class TokenJwtService {
                 .issuer(EMISSOR)
                 .issuedAt(agora)
                 .expiresAt(agora.plus(expiracaoMinutos, ChronoUnit.MINUTES))
+                // jti: id único do token, usado para revogá-lo antes de expirar (logout)
+                .id(UUID.randomUUID().toString())
                 .subject(String.valueOf(usuario.id()))
                 .claim("roles", List.of(usuario.tipo().name()))
                 .claim("nome", usuario.nome())
