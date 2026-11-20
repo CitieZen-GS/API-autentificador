@@ -27,7 +27,7 @@ Serviço de contas e login do **Ajudante Familiar**, a CitizenTech do grupo na G
 
 ![Arquitetura macro do Ajudante Familiar na Azure](docs/arquitetura-ajudante-familiar.png)
 
-O sistema tem três microsserviços Spring Boot, cada um em um Azure App Service (Linux, Java 21, mesmo plano B1), um banco Oracle compartilhado, RabbitMQ no Azure Container Instance e Application Insights. A descrição completa da solução está no [README da API de funções](https://github.com/CitieZen-GS/API-Funcoes#readme).
+O sistema tem três microsserviços Spring Boot, cada um em um Azure App Service (Linux, Java 21, mesmo plano B3), um banco Oracle compartilhado e RabbitMQ, ambos em Azure Container Instances e Application Insights. A descrição completa da solução está no [README da API de funções](https://github.com/CitieZen-GS/API-Funcoes#readme).
 
 | Serviço | Responsabilidade | Porta local |
 |---|---|---|
@@ -210,7 +210,7 @@ Usam Testcontainers (Docker aberto). Na pipeline, os resultados JUnit aparecem n
 
 ## Deploy na Azure (DevOps)
 
-1. **Infraestrutura:** [`scripts/azure-infra.sh`](scripts/azure-infra.sh) é o mesmo arquivo nos 3 repositórios (mantido igual por [`scripts/sincronizar-infra.sh`](scripts/sincronizar-infra.sh)) e cria tudo de uma vez: grupo `gs-ajudantefamiliar`, plano B1 `ajudante-familiar-SP`, Application Insights `ai-ajudante-familiar`, RabbitMQ no Azure Container Instance e os 3 Web Apps (incluindo o `ajudante-familiar-autenticacao`). Rode uma vez (`az login` e `bash scripts/azure-infra.sh`), de qualquer repositório; o que já existe é mantido.
+1. **Infraestrutura:** [`scripts/azure-infra.sh`](scripts/azure-infra.sh) é o mesmo arquivo nos 3 repositórios (mantido igual por [`scripts/sincronizar-infra.sh`](scripts/sincronizar-infra.sh)) e cria tudo de uma vez: grupo `gs-ajudantefamiliar`, plano B3 `ajudante-familiar-SP`, Application Insights `ai-ajudante-familiar`, RabbitMQ e banco Oracle em Azure Container Instances e os 3 Web Apps (incluindo o `ajudante-familiar-autenticacao`). Rode uma vez (`az login` e `bash scripts/azure-infra.sh`), de qualquer repositório; o que já existe é mantido.
 2. **Pipeline:** [`azure-pipeline.yml`](azure-pipeline.yml), disparada a cada merge na `main`. A **CI** compila, roda os testes, publica os resultados JUnit e o `.jar`; o **CD** roda em seguida, grava as variáveis no Web App e faz o Zip Deploy.
 3. **Variáveis da pipeline:** as mesmas da API de funções (`SPRING_DATASOURCE_*`, `SPRING_RABBITMQ_*`, `JWT_SEGREDO`), com senhas e `JWT_SEGREDO` marcados como secretos. O `JWT_SEGREDO` tem que ser idêntico nas 3 APIs.
 
