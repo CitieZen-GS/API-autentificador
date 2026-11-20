@@ -81,7 +81,8 @@ autentificador/
 │   └── compose.yaml            # Oracle e RabbitMQ para desenvolvimento (igual nas 3 APIs)
 ├── docs/                       # desenho da arquitetura
 ├── scripts/
-│   ├── azure-infra.sh          # Azure CLI: Web App da autenticação no plano compartilhado
+│   ├── azure-infra.sh          # Azure CLI: toda a infraestrutura (igual nos 3 repositórios)
+│   ├── sincronizar-infra.sh    # confere ou replica os scripts de infra nos 3 repositórios
 │   └── script-bd.sql           # DDL da tabela de tokens e dados padrão de cargos e perfis
 ├── src/main/java/on/fiap/com/br/autentificador/
 │   ├── controller/             # rotas de login e cadastro, tratamento de erros
@@ -209,7 +210,7 @@ Usam Testcontainers (Docker aberto). Na pipeline, os resultados JUnit aparecem n
 
 ## Deploy na Azure (DevOps)
 
-1. **Infraestrutura:** depois do script da API de funções, rode [`scripts/azure-infra.sh`](scripts/azure-infra.sh). Ele cria o Web App `ajudante-familiar-autenticacao` (Java 21, Always On) no plano `ajudante-familiar-SP` e o liga ao Application Insights `ai-ajudante-familiar`.
+1. **Infraestrutura:** [`scripts/azure-infra.sh`](scripts/azure-infra.sh) é o mesmo arquivo nos 3 repositórios (mantido igual por [`scripts/sincronizar-infra.sh`](scripts/sincronizar-infra.sh)) e cria tudo de uma vez: grupo `gs-ajudantefamiliar`, plano B1 `ajudante-familiar-SP`, Application Insights `ai-ajudante-familiar`, RabbitMQ no Azure Container Instance e os 3 Web Apps (incluindo o `ajudante-familiar-autenticacao`). Rode uma vez (`az login` e `bash scripts/azure-infra.sh`), de qualquer repositório; o que já existe é mantido.
 2. **Pipeline:** [`azure-pipeline.yml`](azure-pipeline.yml), disparada a cada merge na `main`. A **CI** compila, roda os testes, publica os resultados JUnit e o `.jar`; o **CD** roda em seguida, grava as variáveis no Web App e faz o Zip Deploy.
 3. **Variáveis da pipeline:** as mesmas da API de funções (`SPRING_DATASOURCE_*`, `SPRING_RABBITMQ_*`, `JWT_SEGREDO`), com senhas e `JWT_SEGREDO` marcados como secretos. O `JWT_SEGREDO` tem que ser idêntico nas 3 APIs.
 
